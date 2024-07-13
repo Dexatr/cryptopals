@@ -1,0 +1,26 @@
+
+The string:
+
+49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d
+
+Code:
+
+```
+import binascii
+
+# Your hex string
+hex_string = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d"
+
+# Convert hex to bytes
+byte_data = binascii.unhexlify(hex_string)
+
+# Convert bytes to base64
+base64_data = binascii.b2a_base64(byte_data).decode('utf-8')
+
+# Print the result
+print(base64_data.strip())
+```
+
+Output:
+
+SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t
