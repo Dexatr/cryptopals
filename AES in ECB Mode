@@ -1,0 +1,261 @@
+This exercise highlighted the simplicity and efficiency of using Python for cryptographic tasks. By engaging with these challenges, practical experience in identifying and exploiting weaknesses in cryptographic implementations was gained, reinforcing theoretical knowledge from coursework. Breaking the repeating-key XOR encryption involved several steps, including calculating the Hamming distance between different key sizes to determine the most likely key length, and then using frequency analysis to guess each byte of the key. This process not only demonstrated the statistical properties of the English language but also showcased the practical application of frequency analysis in cryptographic challenges. The results underscore the vulnerability of single-byte XOR encryption and emphasize the need for more secure encryption methods to protect sensitive data. Following the provided instructions, we created a Python script to decrypt a Base64-encoded AES-128 encrypted text in ECB mode using the key "YELLOW SUBMARINE." Here's how we approached this task step-by-step. First, we ensured the necessary library, `pycryptodome`, was installed to handle AES decryption. Next, we decoded the Base64-encoded encrypted content to get the raw byte data. This was done using the `b64decode` function from Python's `base64` module. Then, we decrypted the content using the AES-128 algorithm in ECB mode. For this, we used the `AES` class from `Crypto.Cipher` and initialized it with our key. It's important to note that the key needed to be in bytes format, so we converted the string "YELLOW SUBMARINE" accordingly. Finally, we decoded the decrypted byte data to a readable string format (UTF-8) and printed the plaintext. The output of the script was the plaintext message:
+
+```plaintext
+Decrypted text:
+I'm back and I'm ringin' the bell 
+A rockin' on the mike while the fly girls yell 
+In ecstasy...
+```
+
+---
+
+ Step 1: Base64 Decode
+
+Input:
+
+```python
+ciphertext_b64 = """
+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
+GwMMQkE9SB8AMk9TNlIOCxNUHQZCAAoAHh
+
+1FXjYCDBsFABkOBkk7FgALVQRO
+D0EaDwxOSU8dGgI8EVIBAAUEVA5SRjlUQTYbCk5teRsdRVQcDhkDADBFHwhJ
+AQ8XClJBNl4AC1IdBghVEwARABoHCAdFXjwdGEkDCBMHBgAwW1YnUgAaRyon
+B0VTGgoZUwE7EhxNCAAFVAMXTjwaTSdSEAESUlQNBFJOZU5LXHQMHE0EF0EA
+Bh9FeRp5LQdFTkAZREgMU04CEFMcMQQAQ0lkay0ABwcqXwA1FwgFAk4dBkIA
+CA4aB0l0PD1MSQ8PEE87ADtbTmIGDAILAB0cRSo3ABwBRTYKFhROHUETCgZU
+MVQHYhoGGksABwdJAB0ASTpFNwQcTRoDBBgDUkksGioRHUkKCE5THEVCC08E
+EgF0BBwJSQoOGkgGADpfADETDU5tBzcJEFMLTx0bAHQJCx8ADRJUDRdMN1RH
+YgYGTi5jMURFeQEaSRAEOkURDAUCQRkKUmQ5XgBIKwYbQFIRSBVJGgwBGgtz
+RRNNDwcVWE8BT3hJVCcCSQwGQx9IBE4KTwwdASEXF01jIgQATwZIPRpXKwYK
+BkdEGwsRTxxDSToGMUlSCQZOFRwKUkQ5VEMnUh0BR0MBGgAAZDwGUwY7CBdN
+HB5BFwMdUz0aQSwWSQoITlMcRUILTxoCEDUXF01jNw4BTwVBNlRBYhAIGhNM
+EUgIRU5CRFMkOhwGBAQLTVQOHFkvUkUwF0lkbXkbHUVUBgAcFA0gRQYFCBpB
+PU8FQSsaVycTAkJHYhsRSQAXABxUFzFFFggICkEDHR1OPxoqER1JDQhNEUgK
+TkJPDAUAJhwQAg0XQRUBFgArU04lUh0GDlNUGwpOCU9jeTY1HFJARE4xGA4L
+ACxSQTZSDxsJSw1ICFUdBgpTNjUcXk0OAUEDBxtUPRpCLQtFTgBPVB8NSRoK
+SREKLUUVAklkERgOCwAsUkE2Ug8bCUsNSAhVHQYKUyI7RQUFABoEVA0dWXQa
+Ry1SHgYOVBFIB08XQ0kUCnRvPgwQTgUbGBwAOVREYhAGAQBJEUgETgpPGR8E
+LUUGBQgaQRIaHEshGk03AQANR1QdBAkAFwAcUwE9AFxNY2QxGA4LACxSQTZS
+DxsJSw1ICFUdBgpTJjsIF00GAE1ULB1NPRpPLF5JAgJUVAUAAAYKCAFFXjUe
+DBBOFRwOBgA+T04pC0kDElMdC0VXBgYdFkU2CgtNEAEUVBwTWXhTVG5SGg8e
+AB0cRSo+AwgKRSANExlJCBQaBAsANU9TKxFJL0dMHRwRTAtPBRwQMAAATQcB
+FlRlIkw5QwA2GggaR0YBBg5ZTgIcAAw3SVIaAQcVEU8QTyEaYy0fDE4ITlhI
+Jk8DCkkcC3hFMQIEC0EbAVIqCFZBO1IdBgZUVA4QTgUWSR4QJwwRTWM=
+"""
+```
+
+Code:
+
+```python
+import base64
+
+# Base64 Decode
+ciphertext = base64.b64decode(ciphertext_b64.replace('\n', ''))
+```
+
+Output:
+
+```plaintext
+Ciphertext decoded from base64.
+```
+
+---
+
+ Step 2: Compute Hamming Distance
+
+Input:
+
+```python
+s1 = b"this is a test"
+s2 = b"wokka wokka!!!"
+```
+
+Code:
+
+```python
+def hamming_distance(s1, s2):
+    assert len(s1) == len(s2)
+    return sum(bin(b1 ^ b2).count('1') for b1, b2 in zip(s1, s2))
+
+# Validate Hamming distance function
+assert hamming_distance(s1, s2) == 37
+```
+
+Output:
+
+```plaintext
+Hamming distance between "this is a test" and "wokka wokka!!!" is 37.
+```
+
+---
+
+ Step 3: Determine KEYSIZE
+
+Input:
+
+```python
+ciphertext
+```
+
+Code:
+
+```python
+import itertools
+
+def find_keysize(ciphertext, min_keysize=2, max_keysize=40):
+    normalized_distances = []
+    for keysize in range(min_keysize, max_keysize + 1):
+        blocks = [ciphertext[i:i + keysize] for i in range(0, len(ciphertext), keysize)][:4]
+        pairs = list(itertools.combinations(blocks, 2))
+        distance = sum(hamming_distance(p1, p2) for p1, p2 in pairs) / len(pairs)
+        normalized_distances.append((keysize, distance / keysize))
+    return min(normalized_distances, key=lambda x: x[1])[0]
+
+keysize = find_keysize(ciphertext)
+```
+
+Output:
+
+```plaintext
+Determined KEYSIZE: 29
+```
+
+---
+
+ Step 4: Transpose Blocks
+
+Input:
+
+```python
+ciphertext, keysize
+```
+
+Code:
+
+```python
+def transpose_blocks(ciphertext, keysize):
+    blocks = [ciphertext[i:i + keysize] for i in range(0, len(ciphertext), keysize)]
+    transposed = [bytes(block[i] for block in blocks if i < len(block)) for i in range(keysize)]
+    return transposed
+
+transposed_blocks = transpose_blocks(ciphertext, keysize)
+```
+
+Output:
+
+```plaintext
+Transposed blocks created.
+```
+
+---
+
+ Step 5: Single-byte XOR Decryption
+
+Input:
+
+```python
+transposed_blocks
+```
+
+Code:
+
+```python
+def single_byte_xor_decrypt(block):
+    def score_text(text):
+        character_frequencies = {
+            'a': .0651738, 'b': .0124248, 'c': .0217339, 'd': .0349835, 'e': .1041442, 'f': .0197881,
+            'g': .0158610, 'h': .0492888, 'i': .0558094, 'j': .0009033, 'k': .0050529, 'l': .0331490,
+            'm': .0202124, 'n': .0564513, 'o': .0596302, 'p': .0137645, 'q': .0008606, 'r': .0497563,
+            's': .0515760, 't': .0729357, 'u': .0225134, 'v': .0082903, 'w': .0171272, 'x': .0013692,
+            'y': .0145984, 'z': .0007836, ' ': .1918182
+        }
+        return sum(character_frequencies.get(chr(byte), 0) for byte in text.lower())
+    
+    potential_keys = []
+    for key in range(256):
+        decrypted = bytes([byte ^ key for byte in block])
+        score = score_text(decrypted)
+        potential_keys.append((key, score))
+    best_key = max(potential_keys, key=lambda x: x[1])[0]
+    return best_key
+
+key = bytes(single_byte_xor_decrypt(block) for block in transposed_blocks)
+```
+
+Output:
+
+```plaintext
+Recovered key: b'Terminator X: Bring the noise'
+```
+
+---
+
+ Step 6: Decrypt the Ciphertext
+
+Input:
+
+```python
+ciphertext, key
+```
+
+Code:
+
+```python
+def repeating_key_xor_decrypt(ciphertext, key):
+    return bytes([byte ^ key[i % len(key)] for i, byte in enumerate(ciphertext)])
+
+plaintext = repeating_key_xor_decrypt(ciphertext, key).decode('utf-8')
+
+print("Decrypted text:")
+print(plaintext)
+```
+
+Output:
+
+```plaintext
+Decrypted text:
+I'm back and I'm ringin' the bell 
+A rockin' on the mike while the fly girls yell 
+In ecstasy...
+```
+
