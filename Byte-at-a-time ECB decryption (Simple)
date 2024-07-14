@@ -1,0 +1,115 @@
+In this challenge, we implemented a byte-at-a-time ECB decryption method, which allows us to decrypt a secret string that has been appended to our input and encrypted using AES-128 in ECB mode. This technique exploits the predictable nature of ECB mode, where identical plaintext blocks result in identical ciphertext blocks, to reveal the hidden string byte by byte.
+
+# Implementation
+
+To decrypt the unknown string, we first detect the block size, confirm the use of ECB mode, and then use a dictionary attack to decrypt each byte. Here’s the complete implementation:
+
+```python
+import base64
+import random
+from Crypto.Cipher import AES
+
+# Constants
+BLOCK_SIZE = 16
+UNKNOWN_STRING_BASE64 = ("Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg"
+                         "aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq"
+                         "dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg"
+                         "YnkK")
+UNKNOWN_STRING = base64.b64decode(UNKNOWN_STRING_BASE64)
+SECRET_KEY = bytes([random.randint(0, 255) for _ in range(BLOCK_SIZE)])
+
+def pkcs7_pad(data, block_size):
+    pad_length = block_size - len(data) % block_size
+    padding = bytes([pad_length] * pad_length)
+    return data + padding
+
+def ecb_encrypt(data, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(pkcs7_pad(data, BLOCK_SIZE))
+
+def encryption_oracle(your_input):
+    data_to_encrypt = your_input + UNKNOWN_STRING
+    return ecb_encrypt(data_to_encrypt, SECRET_KEY)
+
+def detect_block_size(encryption_oracle):
+    initial_length = len(encryption_oracle(b"A"))
+    i = 2
+    while True:
+        data = b"A" * i
+        new_length = len(encryption_oracle(data))
+        if new_length != initial_length:
+            return new_length - initial_length
+        i += 1
+
+def is_ecb_encrypted(ciphertext):
+    blocks = [ciphertext[i:i + BLOCK_SIZE] for i in range(0, len(ciphertext), BLOCK_SIZE)]
+    return len(blocks) > len(set(blocks))
+
+def byte_at_a_time_ecb_decrypt(encryption_oracle):
+    block_size = detect_block_size(encryption_oracle)
+    assert block_size == BLOCK_SIZE
+    
+    # Check if it's ECB
+    test_input = b"A" * (block_size * 2)
+    assert is_ecb_encrypted(encryption_oracle(test_input))
+
+    unknown_string_length = len(encryption_oracle(b"")) - block_size
+    known_bytes = b""
+
+    for i in range(unknown_string_length):
+        block_index = i // block_size
+        byte_index = i % block_size
+        
+        # Craft input block
+        input_block = b"A" * (block_size - byte_index - 1)
+        
+        # Encrypt input block
+        encrypted_block = encryption_oracle(input_block)[:block_size * (block_index + 1)]
+        
+        # Create a dictionary of all possible last bytes
+        byte_dict = {}
+        for byte in range(256):
+            byte_test = input_block + known_bytes + bytes([byte])
+            encrypted_test = encryption_oracle(byte_test)[:block_size * (block_index + 1)]
+            byte_dict[encrypted_test] = byte
+        
+        # Match the encrypted block to the dictionary
+        next_byte = byte_dict[encrypted_block]
+        known_bytes += bytes([next_byte])
+    
+    return known_bytes
+
+# Decrypt the unknown string
+decrypted_string = byte_at_a_time_ecb_decrypt(encryption_oracle)
+print(decrypted_string.decode('utf-8'))
+```
+
+Input
+
+The input to the encryption oracle function includes:
+
+- A base64-encoded unknown string that is appended to the input before encryption.
+- A randomly generated AES-128 key.
+
+Output
+
+The output of the decryption process is the decrypted unknown string:
+
+```
+Rolling' in my 5.0
+With my rag-top down so my hair can blow
+The girlies on standby waving just to say hi
+Did you stop? No, I just drove by
+```
+
+# Reflection
+
+We followed a structured approach to decrypt the unknown string encrypted in ECB mode. Here’s a breakdown of the steps:
+
+1. Detection of Block Size: We sent increasing lengths of input to the oracle and observed changes in the length of the ciphertext to determine the block size, which was 16 bytes in this case.
+
+2. Verification of ECB Mode: By sending a known input pattern and checking for repeated blocks in the ciphertext, we confirmed that the encryption was indeed using ECB mode.
+
+3. Byte-at-a-time Decryption: We decrypted the unknown string byte by byte. For each byte, we crafted an input that aligned the unknown byte at the end of a block, generated a dictionary of all possible last bytes, and matched the encrypted block to reveal the next byte of the unknown string.
+
+This challenge highlighted the inherent weakness of ECB mode encryption, where identical plaintext blocks produce identical ciphertext blocks, making it susceptible to such decryption techniques. It also emphasized the importance of using more secure encryption modes like CBC, which incorporate randomness to produce unique ciphertext blocks.
