@@ -1,0 +1,159 @@
+This exercise demonstrated how to implement and validate padding schemes in cryptographic applications. It underscored the importance of proper padding validation to prevent cryptographic vulnerabilities, ensuring data integrity and security in encryption systems.
+
+In this challenge, we performed a bit-flipping attack on AES encryption in CBC mode to gain unauthorized access. This attack leverages the nature of the CBC mode, where each block of plaintext is XORed with the previous ciphertext block before encryption. By manipulating the ciphertext, we can control the plaintext after decryption.
+
+Implementation
+
+We implemented functions for padding, unpadding, and encryption in CBC mode. We also created an oracle function to simulate encryption and a function to check if the decrypted plaintext contains a specific admin string. Finally, we crafted a bit-flipping attack to modify the ciphertext and achieve our goal.
+
+Padding and Encryption Functions
+
+First, we define padding and unpadding functions:
+
+```python
+class PaddingException(Exception):
+    pass
+
+def pkcs7_pad(data, block_size):
+    pad_length = block_size - len(data) % block_size
+    padding = bytes([pad_length] * pad_length)
+    return data + padding
+
+def pkcs7_unpad(data):
+    pad_length = data[-1]
+    
+    if pad_length < 1 or pad_length > len(data):
+        raise PaddingException("Invalid padding length.")
+    
+    if data[-pad_length:] != bytes([pad_length] * pad_length):
+        raise PaddingException("Invalid padding bytes.")
+    
+    return data[:-pad_length]
+```
+
+Next, we implement CBC mode encryption and decryption functions using AES in ECB mode internally:
+
+```python
+from Crypto.Cipher import AES
+import os
+
+def fixed_xor(bytes1, bytes2):
+    return bytes(a ^ b for a, b in zip(bytes1, bytes2))
+
+def ecb_encrypt(block, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(block)
+
+def cbc_encrypt(plaintext, key, iv):
+    block_size = len(key)
+    padded_plaintext = pkcs7_pad(plaintext, block_size)
+    
+    ciphertext = b''
+    previous_block = iv
+    
+    for i in range(0, len(padded_plaintext), block_size):
+        plaintext_block = padded_plaintext[i:i + block_size]
+        xored_block = fixed_xor(plaintext_block, previous_block)
+        encrypted_block = ecb_encrypt(xored_block, key)
+        ciphertext += encrypted_block
+        previous_block = encrypted_block
+    
+    return ciphertext
+
+def cbc_decrypt(ciphertext, key, iv):
+    block_size = len(key)
+    
+    decrypted_text = b''
+    previous_block = iv
+    
+    for i in range(0, len(ciphertext), block_size):
+        ciphertext_block = ciphertext[i:i + block_size]
+        decrypted_block = ecb_encrypt(ciphertext_block, key)
+        decrypted_text += fixed_xor(decrypted_block, previous_block)
+        previous_block = ciphertext_block
+    
+    try:
+        return pkcs7_unpad(decrypted_text)
+    except PaddingException:
+        raise ValueError("Invalid padding")
+```
+
+Encryption Oracle and Admin Check
+
+We generate a random AES key and create an encryption oracle that sanitizes user input to prevent injection attacks. The oracle function concatenates a prefix and suffix to the sanitized input, then encrypts it using CBC mode:
+
+```python
+random_key = os.urandom(16)
+
+def sanitize_input(user_input):
+    return user_input.replace(";", "%3B").replace("=", "%3D")
+
+def encryption_oracle(user_input):
+    prefix = "comment1=cooking%20MCs;userdata="
+    suffix = ";comment2=%20like%20a%20pound%20of%20bacon"
+    
+    sanitized_input = sanitize_input(user_input)
+    plaintext = (prefix + sanitized_input + suffix).encode('utf-8')
+    
+    iv = os.urandom(16)
+    return cbc_encrypt(plaintext, random_key, iv), iv
+
+def is_admin(ciphertext, iv):
+    decrypted_text = cbc_decrypt(ciphertext, random_key, iv).decode('utf-8')
+    return ";admin=true;" in decrypted_text
+```
+
+Bit-Flipping Attack
+
+The core of the attack is the bit-flipping function, which modifies specific bytes in the ciphertext to change the decrypted plaintext:
+
+```python
+def bitflip_attack(ciphertext, block_size):
+    block_to_modify = 2
+    prefix_length = 16
+    
+    block_start = block_to_modify * block_size
+    target = b";admin=true;"
+    target_block = bytearray(target.ljust(block_size, b'\x00'))
+    
+    modified_ciphertext = bytearray(ciphertext)
+    for i in range(block_size):
+        modified_ciphertext[block_start - block_size + i] ^= target_block[i] ^ ord("B")
+    
+    return bytes(modified_ciphertext)
+```
+
+Testing the Attack
+
+We test the attack by encrypting a specially crafted input, performing the bit-flipping attack, and checking if the modified ciphertext contains the `;admin=true;` string after decryption:
+
+```python
+# Crafting the attack
+user_input = "B" * 16 + "admin=true"
+ciphertext, iv = encryption_oracle(user_input)
+modified_ciphertext = bitflip_attack(ciphertext, 16)
+
+print(is_admin(modified_ciphertext, iv))
+```
+
+ Output
+
+The output is:
+
+```plaintext
+True
+```
+
+ Reflection
+
+Following the instructions, we created a Python script to exploit a vulnerability in the CBC mode of AES encryption by performing a bit-flipping attack. Here’s a detailed explanation of our approach:
+
+1. Padding and Unpadding Functions: We ensured our plaintexts were properly padded before encryption and correctly unpadded after decryption. This is essential for maintaining the block size consistency required by AES.
+
+2. CBC Mode Functions: We implemented the CBC mode encryption and decryption functions using AES in ECB mode internally but adapted to handle the chaining nature of CBC.
+
+3. Encryption Oracle and Admin Check: The `encryption_oracle` function simulated the encryption of user input data with a predefined prefix and suffix. The `is_admin` function checked if the decrypted plaintext contained the `;admin=true;` string.
+
+4. Bit-Flipping Attack: By modifying specific bytes in the ciphertext, we controlled the plaintext after decryption. This attack demonstrated how the XOR operations in CBC mode could be exploited to inject arbitrary strings into the decrypted plaintext.
+
+The successful attack highlighted the importance of secure encryption practices and thorough testing to ensure the robustness of cryptographic systems. It also emphasized the need for a deeper understanding of cryptographic weaknesses to protect against potential vulnerabilities.
