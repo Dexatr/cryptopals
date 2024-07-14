@@ -1,0 +1,65 @@
+Following the provided instructions, we created a Python script to decrypt a hex-encoded string that had been XORed with a single-byte key. This was done by converting the input hex string to its raw byte data representation using the `binascii` module's `unhexlify` function. We then iterated over all possible single-byte keys (0-255) and XORed each byte of the input data with the current key, using a generator expression within a bytes constructor to produce the resulting byte sequence.
+
+To determine the most likely key, we scored each resulting plaintext using a character frequency analysis. This scoring function calculated how closely each decrypted text matched typical English language character frequencies, based on a predefined frequency table. The process involved:
+
+1. Converting the hex string to bytes.
+2. Iterating over all possible single-byte keys.
+3. XORing the input bytes with each key.
+4. Scoring the resulting plaintexts based on character frequency.
+5. Keeping track of the best-scoring plaintext and its corresponding key.
+
+The output of the script was the best key and the decrypted message, which was found to be "Cooking MC's like a pound of bacon" with the key 88. This demonstrated the effectiveness of using frequency analysis to decrypt XOR-encrypted messages, highlighting how statistical properties of the English language can aid in cryptanalysis.
+
+```python
+import binascii
+from collections import Counter
+
+# Hex encoded string
+hex_string = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
+
+# Function to calculate the score of a text based on character frequency
+def score_text(text):
+    frequency = {
+        'a': 0.0651738, 'b': 0.0124248, 'c': 0.0217339, 'd': 0.0349835, 'e': 0.1041442,
+        'f': 0.0197881, 'g': 0.0158610, 'h': 0.0492888, 'i': 0.0558094, 'j': 0.0009033,
+        'k': 0.0050529, 'l': 0.0331490, 'm': 0.0202124, 'n': 0.0564513, 'o': 0.0596302,
+        'p': 0.0137645, 'q': 0.0008606, 'r': 0.0497563, 's': 0.0515760, 't': 0.0729357,
+        'u': 0.0225134, 'v': 0.0082903, 'w': 0.0171272, 'x': 0.0013692, 'y': 0.0145984,
+        'z': 0.0007836, ' ': 0.1918182
+    }
+    return sum(frequency.get(char, 0) for char in text.lower())
+
+# Function to XOR a hex string with a single character
+def single_byte_xor(hex_string, char):
+    byte_data = binascii.unhexlify(hex_string)
+    xor_result = bytes([b ^ char for b in byte_data])
+    return xor_result
+
+# Find the key and the plaintext
+best_score = 0
+best_plaintext = ""
+best_key = None
+
+for key in range(256):
+    decrypted_text = single_byte_xor(hex_string, key).decode('latin1')
+    current_score = score_text(decrypted_text)
+    if current_score > best_score:
+        best_score = current_score
+        best_plaintext = decrypted_text
+        best_key = key
+
+# Print the result
+print(f"Key: {best_key}")
+print(f"Decrypted message: {best_plaintext}")
+```
+
+Input:
+
+`1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736`
+
+Output:
+
+```
+Key: 88
+Decrypted message: Cooking MC's like a pound of bacon
+```
