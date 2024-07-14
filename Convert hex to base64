@@ -1,11 +1,21 @@
+The first challenge required converting a hexadecimal string to a Base64-encoded string. This involved decoding the hex string to raw bytes and then encoding those bytes into Base64. The built-in `binascii` Python module allows us to convert between binary and various ASCII-encoded binary representations. In this challenge, we used the `binascii` module to transform the provided hex string into its corresponding byte data and then encode this byte data into Base64. Additionally, encoding it with the UTF-8 standard ensures that the resulting string is easily readable.
 
-The string:
+```python
+import base64
 
-49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d
+hex_str = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d"
+raw_bytes = bytes.fromhex(hex_str)
+base64_str = base64.b64encode(raw_bytes).decode('utf-8')
+print(base64_str)
+```
+
+Input:
+
+`49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d`
 
 Code:
 
-```
+```python
 import binascii
 
 # Your hex string
@@ -23,4 +33,4 @@ print(base64_data.strip())
 
 Output:
 
-SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t
+`SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t`
