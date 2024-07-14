@@ -1,0 +1,53 @@
+This challenge required implementing the repeating-key XOR encryption, which involved XORing each byte of the plaintext with a byte from the key in a repeating fashion. Following the provided instructions, we created a Python script to perform a repeating-key XOR encryption on a given text. This was accomplished by converting both the text and the key to their ASCII values and repeating the key to match the length of the text. We then applied the XOR operation between the text bytes and the repeated key bytes and converted the result to a hexadecimal string.
+
+This process not only demonstrated the statistical properties of the English language but also showcased the practical application of frequency analysis in cryptographic challenges. The results underscore the vulnerability of single-byte XOR encryption and emphasize the need for more secure encryption methods to protect sensitive data. By engaging with these challenges, I gained practical experience in identifying and exploiting weaknesses in cryptographic implementations, reinforcing the theoretical knowledge gained from coursework. The script successfully encrypted the given text using a repeating-key XOR approach, demonstrating a common method of applying symmetric key encryption in a straightforward and effective manner. This process highlights how repeating-key XOR can be used for secure text encryption and provides insight into the mechanics of basic cryptographic operations.
+
+The steps involved were:
+
+1. Conversion to ASCII Values:
+   - We converted each character of the text and the key to their ASCII values using the `ord` function. This provided a numerical representation of each character.
+
+2. Repeating the Key:
+   - To match the length of the text, the key was repeated using list multiplication and slicing. This ensured that the key aligned correctly with the text for the XOR operation.
+
+3. XOR Operation:
+   - We applied the XOR operation between the ASCII values of the text and the repeated key using a list comprehension. This bitwise operation combines the text and key in a secure manner.
+
+4. Hexadecimal Conversion:
+   - The resulting XOR values were converted to a hexadecimal string using the `format` function within a list comprehension. This made the encrypted output compact and readable.
+
+Here’s the Python code used for encryption:
+
+```python
+def repeating_key_xor(text, key):
+    # Convert text and key to their ASCII values
+    text_bytes = [ord(c) for c in text]
+    key_bytes = [ord(c) for c in key]
+    
+    # Repeat the key to match the length of the text
+    repeated_key = (key_bytes * ((len(text_bytes) // len(key_bytes)) + 1))[:len(text_bytes)]
+    
+    # Apply XOR operation between text and repeated key bytes
+    xor_result = [t ^ k for t, k in zip(text_bytes, repeated_key)]
+    
+    # Convert the result to a hexadecimal string
+    hex_string = ''.join(format(x, '02x') for x in xor_result)
+    return hex_string
+
+# Given text and key
+text = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
+key = "ICE"
+
+# Encrypt the text
+encrypted_text = repeating_key_xor(text, key)
+
+# Print the result
+print(encrypted_text)
+```
+
+Output:
+
+```
+0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f
+```
+
