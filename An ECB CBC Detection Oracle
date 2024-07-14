@@ -1,0 +1,147 @@
+In this challenge, we implemented an oracle to detect whether a given plaintext was encrypted using ECB (Electronic Codebook) or CBC (Cipher Block Chaining) mode. This exercise helped us understand the differences between these encryption modes and develop a method to identify them based on the encrypted output.
+
+# Implementation
+
+To achieve this, we created functions to generate random AES keys, encrypt data using both ECB and CBC modes, and detect the encryption mode. Here's the detailed implementation:
+
+```python
+import binascii
+from Crypto.Cipher import AES
+import random
+
+# Constants
+BLOCK_SIZE = 16
+
+# Function to generate a random AES key
+def generate_random_aes_key():
+    return bytes([random.randint(0, 255) for _ in range(BLOCK_SIZE)])
+
+# Function to XOR two byte sequences
+def fixed_xor(bytes1, bytes2):
+    return bytes(a ^ b for a, b in zip(bytes1, bytes2))
+
+# Function to pad data using PKCS#7 padding
+def pkcs7_pad(data, block_size):
+    pad_length = block_size - len(data) % block_size
+    padding = bytes([pad_length] * pad_length)
+    return data + padding
+
+# Function to encrypt data using AES in ECB mode
+def ecb_encrypt(block, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(block)
+
+# Function to encrypt data using AES in CBC mode
+def cbc_encrypt(plaintext, key, iv):
+    block_size = len(key)
+    padded_plaintext = pkcs7_pad(plaintext, block_size)
+    
+    ciphertext = b''
+    previous_block = iv
+    
+    for i in range(0, len(padded_plaintext), block_size):
+        plaintext_block = padded_plaintext[i:i + block_size]
+        xored_block = fixed_xor(plaintext_block, previous_block)
+        encrypted_block = ecb_encrypt(xored_block, key)
+        ciphertext += encrypted_block
+        previous_block = encrypted_block
+    
+    return ciphertext
+
+# Oracle function to randomly encrypt data using ECB or CBC mode
+def encryption_oracle(plaintext):
+    key = generate_random_aes_key()
+    prepend = bytes([random.randint(0, 255) for _ in range(random.randint(5, 10))])
+    append = bytes([random.randint(0, 255) for _ in range(random.randint(5, 10))])
+    plaintext = prepend + plaintext + append
+    iv = generate_random_aes_key()
+    
+    if random.randint(0, 1) == 0:
+        # ECB mode
+        return ecb_encrypt(pkcs7_pad(plaintext, BLOCK_SIZE), key)
+    else:
+        # CBC mode
+        return cbc_encrypt(plaintext, key, iv)
+
+# Function to check if the ciphertext is encrypted using ECB mode
+def is_ecb_encrypted(ciphertext):
+    blocks = [ciphertext[i:i + BLOCK_SIZE] for i in range(0, len(ciphertext), BLOCK_SIZE)]
+    return len(blocks) > len(set(blocks))
+
+# Function to detect the encryption mode
+def detect_encryption_mode(encryption_oracle_function):
+    test_input = b"A" * 64  # 4 blocks of repeated 'A' characters
+    ciphertext = encryption_oracle_function(test_input)
+    if is_ecb_encrypted(ciphertext):
+        return "ECB"
+    else:
+        return "CBC"
+
+# Input plaintext
+plaintext = b"CRIwqt4+szDbqkNY+I0qbNXPg1XLaCM5etQ5Bt9DRFV/xIN2k8Go7jtArLIyP605"
+
+# Test the encryption mode detection
+mode = detect_encryption_mode(encryption_oracle)
+print(f"Detected mode: {mode}")
+```
+
+# Output
+
+The output of the detection function indicated the encryption mode:
+
+```
+Detected mode: ECB
+```
+
+# Reflection
+
+To tackle this challenge, we first created essential utility functions:
+
+1. Random AES Key Generation: We generated a random AES key to ensure encryption keys are unpredictable.
+   
+   ```python
+   def generate_random_aes_key():
+       return bytes([random.randint(0, 255) for _ in range(BLOCK_SIZE)])
+   ```
+
+2. XOR and Padding Functions: We implemented functions for XOR operations and PKCS#7 padding, which are crucial for CBC mode encryption.
+
+   ```python
+   def fixed_xor(bytes1, bytes2):
+       return bytes(a ^ b for a, b in zip(bytes1, bytes2))
+   
+   def pkcs7_pad(data, block_size):
+       pad_length = block_size - len(data) % block_size
+       padding = bytes([pad_length] * pad_length)
+       return data + padding
+   ```
+
+3. ECB and CBC Encryption Functions: We implemented functions to encrypt data using ECB and CBC modes. ECB mode encrypts each block independently, while CBC mode uses the XOR of the current plaintext block with the previous ciphertext block before encryption.
+
+   ```python
+   def ecb_encrypt(block, key):
+       cipher = AES.new(key, AES.MODE_ECB)
+       return cipher.encrypt(block)
+   
+   def cbc_encrypt(plaintext, key, iv):
+       block_size = len(key)
+       padded_plaintext = pkcs7_pad(plaintext, block_size)
+       
+       ciphertext = b''
+       previous_block = iv
+       
+       for i in range(0, len(padded_plaintext), block_size):
+           plaintext_block = padded_plaintext[i:i + block_size]
+           xored_block = fixed_xor(plaintext_block, previous_block)
+           encrypted_block = ecb_encrypt(xored_block, key)
+           ciphertext += encrypted_block
+           previous_block = encrypted_block
+       
+       return ciphertext
+   ```
+
+4. Encryption Oracle and Detection: We created an encryption oracle that randomly chose between ECB and CBC modes, and a detection function that used patterns in the ciphertext to identify the encryption mode.
+
+
+
+By combining these functions, we successfully created a script to detect the encryption mode used by an oracle. This challenge highlighted the importance of understanding different encryption modes and their characteristics, enabling us to identify potential vulnerabilities in encryption implementations. The detection of ECB mode was particularly interesting due to its predictable nature, which can be exploited to reveal encryption patterns.
