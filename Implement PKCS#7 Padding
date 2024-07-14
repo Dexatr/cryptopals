@@ -1,0 +1,55 @@
+In cryptography, block ciphers transform a fixed-sized block of plaintext (usually 8 or 16 bytes) into ciphertext. However, since messages often vary in length, padding schemes are used to ensure that the plaintext fits the required block size. One of the most popular padding schemes is PKCS#7. 
+
+PKCS#7 padding ensures that the final block of plaintext is an even multiple of the block size by appending a series of bytes, each of which is equal to the number of bytes that are added. This challenge required implementing PKCS#7 padding in Python.
+
+# Implementation
+
+The challenge involved writing a Python function to apply PKCS#7 padding to a given block of text. Here's the function:
+
+```python
+def pkcs7_pad(block, block_size):
+    pad_length = block_size - len(block) % block_size
+    padding = chr(pad_length) * pad_length
+    return block + padding
+
+# Input block and block size
+block = "YELLOW SUBMARINE"
+block_size = 20
+
+# Get the padded block
+padded_block = pkcs7_pad(block, block_size)
+
+# Print the result
+print(repr(padded_block))
+```
+
+# Input
+
+The inputs to the function were a block of text and the desired block size:
+
+```python
+block = "YELLOW SUBMARINE"
+block_size = 20
+```
+
+# Output
+
+The output after applying PKCS#7 padding was:
+
+```
+'YELLOW SUBMARINE\x04\x04\x04\x04'
+```
+
+# Reflection
+
+Following the provided instructions, we created a Python script to implement PKCS#7 padding for a given block of text. This type of padding is used in cryptography to ensure that the plaintext is a multiple of the block size required by the encryption algorithm.
+
+We defined a function `pkcs7_pad` that takes a block of text and the desired block size as input. The function calculates the padding length needed by determining how many bytes are required to make the block size a multiple of the block size. It then appends the appropriate number of padding characters to the end of the block.
+
+The function was tested with the block "YELLOW SUBMARINE" and a block size of 20. The output showed that the block was correctly padded with four padding characters `\x04`, resulting in:
+
+```
+'YELLOW SUBMARINE\x04\x04\x04\x04'
+```
+
+This exercise demonstrated the importance of correctly implementing padding in cryptographic operations. PKCS#7 padding is a widely used scheme that ensures data conforms to the necessary block size, making it crucial for secure and reliable encryption.
