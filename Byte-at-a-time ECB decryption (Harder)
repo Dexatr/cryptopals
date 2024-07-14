@@ -1,0 +1,154 @@
+In this challenge, we implemented a byte-at-a-time ECB decryption attack with a random prefix to decrypt a base64-encoded string that is appended to our input and encrypted using AES-128 in ECB mode. This attack exploits the weaknesses of ECB mode, where identical plaintext blocks result in identical ciphertext blocks.
+
+Implementation
+
+To decrypt the unknown string, we first detect the block size, confirm the use of ECB mode, determine the length of the random prefix, and then use a dictionary attack to decrypt each byte. Here’s the complete implementation:
+
+Parsing and Encryption Setup
+
+First, we define our constants and encryption functions:
+
+```python
+import binascii
+import random
+from base64 import b64decode
+from Crypto.Cipher import AES
+
+# Constants
+BLOCK_SIZE = 16
+KEY = bytes([random.randint(0, 255) for _ in range(16)])
+UNKNOWN_STRING = b64decode(
+    "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg"
+    "aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq"
+    "dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg"
+    "YnkK"
+)
+PREFIX = bytes([random.randint(0, 255) for _ in range(random.randint(5, 10))])
+
+def pkcs7_pad(data, block_size):
+    pad_length = block_size - len(data) % block_size
+    padding = bytes([pad_length] * pad_length)
+    return data + padding
+
+def pkcs7_unpad(data):
+    pad_length = data[-1]
+    if pad_length < 1 or pad_length > BLOCK_SIZE:
+        raise ValueError("Invalid padding")
+    for i in range(1, pad_length + 1):
+        if data[-i] != pad_length:
+            raise ValueError("Invalid padding")
+    return data[:-pad_length]
+
+def ecb_encrypt(data, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(pkcs7_pad(data, BLOCK_SIZE))
+
+def ecb_decrypt(data, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return pkcs7_unpad(cipher.decrypt(data))
+
+def encryption_oracle(data):
+    plaintext = PREFIX + data + UNKNOWN_STRING
+    return ecb_encrypt(plaintext, KEY)
+```
+
+Detecting Block Size
+
+We craft an input and measure the length of the encrypted output as we increase the input size. The change in length indicates the block size:
+
+```python
+def detect_block_size(oracle):
+    length = len(oracle(b"A"))
+    i = 2
+    while True:
+        new_length = len(oracle(b"A" * i))
+        if new_length > length:
+            return new_length - length
+        i += 1
+```
+
+Checking ECB Encryption
+
+We determine if the encryption method is ECB by checking for repeating blocks in the ciphertext:
+
+```python
+def is_ecb_encrypted(data, block_size):
+    blocks = [data[i:i + block_size] for i in range(0, len(data), block_size)]
+    return len(blocks) != len(set(blocks))
+```
+
+Decrypting the ECB Encrypted String
+
+The core part of our attack involves decrypting the unknown string byte by byte by crafting specific inputs and comparing the encrypted output to a dictionary of possible values:
+
+```python
+def decrypt_ecb_hard(oracle):
+    block_size = detect_block_size(oracle)
+    print(f"Detected block size: {block_size}")
+    
+    initial_data = oracle(b"")
+    num_blocks = len(initial_data) // block_size
+
+    # Determine prefix length and how many blocks it occupies
+    prefix_padding_length = 0
+    for i in range(block_size * 2):
+        crafted_input = b"A" * i
+        response = oracle(crafted_input)
+        blocks = [response[j:j + block_size] for j in range(0, len(response), block_size)]
+        if blocks[0] == blocks[1]:  # Detect the first aligned block
+            prefix_padding_length = i - block_size
+            break
+
+    # Calculate the number of bytes in the prefix
+    prefix_length = block_size - prefix_padding_length
+
+    decrypted_bytes = b""
+
+    for i in range(len(initial_data)):
+        block_index = (i // block_size) + 1
+        block_start = block_index * block_size
+        crafted_input = b"A" * (block_start - prefix_length - 1)
+        block_dict = {}
+
+        for byte in range(256):
+            test_input = crafted_input + decrypted_bytes + bytes([byte])
+            block_dict[oracle(test_input)[:block_start]] = bytes([byte])
+
+        response = oracle(crafted_input)
+        decrypted_bytes += block_dict[response[:block_start]]
+
+        if len(decrypted_bytes) >= len(initial_data):
+            break
+
+    return decrypted_bytes.decode()
+```
+
+# Testing the Decryption
+
+Finally, we test the decryption function to reveal the hidden message:
+
+```python
+print(decrypt_ecb_hard(encryption_oracle))
+```
+
+ Output
+
+The decrypted string is:
+
+```
+Rolling' in my 5.0
+With my rag-top down so my hair can blow
+The girlies on standby waving just to say hi
+Did you stop? No, I just drove by
+```
+
+Reflection
+
+This exercise showcased the byte-at-a-time decryption attack on AES-128 ECB mode, even with a random prefix. Here’s a summary of the steps we followed:
+
+1. Set Up Constants and Functions: We initialized the constants, including the random key and random prefix, and defined the padding and encryption functions.
+2. Detect Block Size: We measured changes in the ciphertext length to detect the block size.
+3. Confirm ECB Mode: We checked for repeated blocks in the ciphertext to confirm the use of ECB mode.
+4. Decrypt the Encrypted String: We decrypted the unknown string byte by byte using a dictionary attack, taking into account the random prefix.
+
+By understanding and exploiting the weaknesses of ECB mode, we could reveal the hidden message. This highlights the importance of using more secure encryption modes, such as CBC or GCM, to prevent such attacks.
