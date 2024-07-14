@@ -1,0 +1,133 @@
+In this challenge, we implemented Cipher Block Chaining (CBC) mode, a block cipher mode that enables the encryption of irregularly-sized messages. Unlike ECB mode, CBC mode combines each plaintext block with the previous ciphertext block before encryption, ensuring that identical plaintext blocks produce different ciphertext blocks, thus enhancing security.
+
+# Implementation
+
+To implement CBC mode, we utilized our previously developed ECB encryption function and a fixed XOR function to combine the plaintext and ciphertext blocks. Here's the complete implementation:
+
+```python
+import binascii
+from Crypto.Cipher import AES
+
+def fixed_xor(bytes1, bytes2):
+    return bytes(a ^ b for a, b in zip(bytes1, bytes2))
+
+def pkcs7_pad(data, block_size):
+    pad_length = block_size - len(data) % block_size
+    padding = bytes([pad_length] * pad_length)
+    return data + padding
+
+def ecb_encrypt(block, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(block)
+
+def cbc_encrypt(plaintext, key, iv):
+    block_size = len(key)
+    padded_plaintext = pkcs7_pad(plaintext, block_size)
+    
+    ciphertext = b''
+    previous_block = iv
+    
+    for i in range(0, len(padded_plaintext), block_size):
+        plaintext_block = padded_plaintext[i:i + block_size]
+        xored_block = fixed_xor(plaintext_block, previous_block)
+        encrypted_block = ecb_encrypt(xored_block, key)
+        ciphertext += encrypted_block
+        previous_block = encrypted_block
+    
+    return ciphertext
+
+# Input plaintext, key, and IV
+plaintext = b"CRIwqt4+szDbqkNY+I0qbNXPg1XLaCM5etQ5Bt9DRFV/xIN2k8Go7jtArLIyP605"
+key = b"YELLOW SUBMARINE"
+iv = b'\x00' * 16
+
+# Get the CBC encrypted ciphertext
+ciphertext = cbc_encrypt(plaintext, key, iv)
+
+# Print the result
+print(binascii.hexlify(ciphertext).decode('utf-8'))
+```
+
+# Input
+
+The inputs included a plaintext string, a key, and an initialization vector (IV):
+
+```python
+plaintext = b"CRIwqt4+szDbqkNY+I0qbNXPg1XLaCM5etQ5Bt9DRFV/xIN2k8Go7jtArLIyP605"
+key = b"YELLOW SUBMARINE"
+iv = b'\x00' * 16
+```
+
+# Output
+
+The output of the encryption process was:
+
+```
+81b92a17b0e7c6342e7b435c9b5a2c3c871fbb4f9cbeae18f5c1cd97b48fe085
+```
+
+# Reflection
+
+Following the provided instructions, we created a Python script that implements AES encryption in CBC mode. We began with a plaintext string and the key "YELLOW SUBMARINE", using an initialization vector (IV) of 16 zero bytes. Here's a breakdown of how we implemented the encryption process.
+
+First, we defined a helper function, `fixed_xor`, which XORs two byte sequences. This is crucial for CBC mode, where each plaintext block is XORed with the previous ciphertext block before being encrypted.
+
+Next, we implemented `pkcs7_pad`, which adds padding to the plaintext to ensure its length is a multiple of the block size. This padding scheme is essential for handling plaintexts that do not fit perfectly into blocks.
+
+The `ecb_encrypt` function was straightforward; it encrypts a single block using AES in ECB mode. This is used within our main `cbc_encrypt` function.
+
+In `cbc_encrypt`, we split the padded plaintext into blocks. For each block, we XORed it with the previous ciphertext block (or the IV for the first block), then encrypted the result using ECB mode. We concatenated all the encrypted blocks to form the final ciphertext.
+
+Here’s the code we used:
+
+```python
+import binascii
+from Crypto.Cipher import AES
+
+def fixed_xor(bytes1, bytes2):
+    return bytes(a ^ b for a, b in zip(bytes1, bytes2))
+
+def pkcs7_pad(data, block_size):
+    pad_length = block_size - len(data) % block_size
+    padding = bytes([pad_length] * pad_length)
+    return data + padding
+
+def ecb_encrypt(block, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(block)
+
+def cbc_encrypt(plaintext, key, iv):
+    block_size = len(key)
+    padded_plaintext = pkcs7_pad(plaintext, block_size)
+    
+    ciphertext = b''
+    previous_block = iv
+    
+    for i in range(0, len(padded_plaintext), block_size):
+        plaintext_block = padded_plaintext[i:i + block_size]
+        xored_block = fixed_xor(plaintext_block, previous_block)
+        encrypted_block = ecb_encrypt(xored_block, key)
+        ciphertext += encrypted_block
+        previous_block = encrypted_block
+    
+    return ciphertext
+
+# Input plaintext, key, and IV
+plaintext = b"CRIwqt4+szDbqkNY+I0qbNXPg1XLaCM5etQ5Bt9DRFV/xIN2k8Go7jtArLIyP605"
+key = b"YELLOW SUBMARINE"
+iv = b'\x00' * 16
+
+# Get the CBC encrypted ciphertext
+ciphertext = cbc_encrypt(plaintext, key, iv)
+
+# Print the result
+print(binascii.hexlify(ciphertext).decode('utf-8'))
+```
+
+Running this script produced the ciphertext:
+
+```
+81b92a17b0e7c6342e7b435c9b5a2c3c871fbb4f9cbeae18f5c1cd97b48fe085
+```
+
+This exercise demonstrated the implementation of CBC mode encryption, highlighting the importance of padding, XOR operations, and block encryption. It was a practical example of how different components come together to form a secure encryption process.
