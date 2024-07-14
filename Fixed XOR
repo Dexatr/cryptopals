@@ -1,0 +1,34 @@
+In this challenge, I wrote a function to XOR two equal-length byte buffers. This required reading the hex-encoded inputs, XORing them byte-by-byte, and then encoding the result back to hex. Following the provided instructions, we created a Python script to XOR (exclusive or) two strings of hex characters and output the result. This was done by converting both inputted hex strings to their raw byte data representations. We used the `binascii` module's `unhexlify` function and the Python `zip` function to convert and separate the hex strings into corresponding (a, b) byte tuple pairs. Once done, the byte pairs are XOR-ed together to get the resultant byte data, which is converted into hex so it can be outputted in a readable format. Note that "Fixed XOR" in the problem statement refers to how the first provided hex string is constant or "fixed," while the second provided hex string is variable to demonstrate how XOR-ing two strings together can result in radically different outputs depending on the strings used.
+
+```python
+import binascii
+
+def fixed_xor(hex_str1, hex_str2):
+    # Convert hex strings to bytes
+    bytes1 = binascii.unhexlify(hex_str1)
+    bytes2 = binascii.unhexlify(hex_str2)
+    
+    # Perform XOR operation
+    xor_result = bytes(a ^ b for a, b in zip(bytes1, bytes2))
+    
+    # Convert result to hex string
+    return binascii.hexlify(xor_result).decode('utf-8')
+
+# Input hex strings
+hex_str1 = "1c0111001f010100061a024b53535009181c"
+hex_str2 = "686974207468652062756c6c277320657965"
+
+# Get the XOR result
+result = fixed_xor(hex_str1, hex_str2)
+
+# Print the result
+print(result)
+```
+
+Input:
+
+`1c0111001f010100061a024b53535009181c`
+
+Output:
+
+`746865206b696420646f6e277420706c6179`
