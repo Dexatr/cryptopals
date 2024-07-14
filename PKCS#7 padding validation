@@ -1,0 +1,90 @@
+In this challenge, we implemented a function to validate and remove PKCS#7 padding. PKCS#7 padding is a scheme used to pad plaintexts so their lengths are multiples of the block size required by block cipher algorithms. We also created a custom exception class to handle padding errors and tested the function with various inputs.
+
+Implementation
+
+First, we define the `PaddingException` class to handle any padding errors:
+
+```python
+class PaddingException(Exception):
+    pass
+```
+
+Next, we implement the `pkcs7_unpad` function to remove and validate the padding from the data. This function checks the length of the padding and ensures all padding bytes are correct. If any condition is not met, it raises a `PaddingException`.
+
+```python
+def pkcs7_unpad(data):
+    pad_length = data[-1]
+    
+    if pad_length < 1 or pad_length > len(data):
+        raise PaddingException("Invalid padding length.")
+    
+    if data[-pad_length:] != bytes([pad_length] * pad_length):
+        raise PaddingException("Invalid padding bytes.")
+    
+    return data[:-pad_length]
+```
+
+Test Cases
+
+We test the function with three cases:
+
+1. `plaintext_valid` with valid padding.
+2. `plaintext_invalid1` with invalid padding bytes.
+3. `plaintext_invalid2` with incorrect padding structure.
+
+```python
+# Test cases
+plaintext_valid = b"ICE ICE BABY\x04\x04\x04\x04"
+plaintext_invalid1 = b"ICE ICE BABY\x05\x05\x05\x05"
+plaintext_invalid2 = b"ICE ICE BABY\x01\x02\x03\x04"
+
+try:
+    result = pkcs7_unpad(plaintext_valid)
+    print("Valid padding:", result)
+except PaddingException as e:
+    print("Invalid padding:", str(e))
+
+try:
+    result = pkcs7_unpad(plaintext_invalid1)
+    print("Valid padding:", result)
+except PaddingException as e:
+    print("Invalid padding:", str(e))
+
+try:
+    result = pkcs7_unpad(plaintext_invalid2)
+    print("Valid padding:", result)
+except PaddingException as e:
+    print("Invalid padding:", str(e))
+```
+
+Output
+
+The function produces the following output:
+
+```plaintext
+Valid padding: b'ICE ICE BABY'
+Invalid padding: Invalid padding bytes.
+Invalid padding: Invalid padding bytes.
+```
+
+Reflection
+
+By following the instructions, we successfully created a Python script that validates and removes PKCS#7 padding. Here’s a detailed explanation of our approach:
+
+1. Custom Exception Class: We defined a `PaddingException` class to handle errors specifically related to padding. This helps us clearly identify and handle padding issues.
+
+2. Padding Validation Function: The `pkcs7_unpad` function checks:
+   - The length of the padding to ensure it is within the valid range.
+   - All padding bytes to ensure they are correct.
+
+3. Testing: We tested the function with three different plaintexts:
+   - One with valid padding, which the function correctly unpadded.
+   - Two with invalid padding, where the function raised exceptions as expected.
+
+The output confirmed the function's accuracy in detecting and handling padding issues:
+
+```plaintext
+Valid padding: b'ICE ICE BABY'
+Invalid padding: Invalid padding bytes.
+Invalid padding: Invalid padding bytes.
+```
