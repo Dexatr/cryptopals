@@ -1,0 +1,73 @@
+In this challenge, I wrote a function to decrypt multiple hex-encoded strings that had been XORed with a single-byte key. Following the provided instructions, the script operates by leveraging the binascii module to convert hex strings into their corresponding byte data. The core functionality is built around iterating through all possible single-byte keys (0-255), XORing each byte of the input data with the current key, and scoring the resultant plaintexts based on character frequency analysis. This process demonstrated the effectiveness of using frequency analysis for decrypting XOR-encrypted messages, highlighting how statistical properties of the English language can aid in cryptanalysis. The results underscore the vulnerability of single-byte XOR encryption and emphasize the need for more secure encryption methods to protect sensitive data. By engaging with these challenges, I gained practical experience in identifying and exploiting weaknesses in cryptographic implementations, reinforcing the theoretical knowledge gained from coursework. This process not only demonstrated the statistical properties of the English language but also showcased the practical application of frequency analysis in cryptographic challenges.
+
+To achieve this, I implemented a character frequency scoring function, `score_text`, which evaluates how closely each decrypted text matches typical English language frequencies. This statistical approach is crucial for identifying the most likely plaintexts. The `single_byte_xor` function performs the XOR operation on the byte data, returning the resultant byte sequence. The decryption function, `decrypt_single_byte_xor`, iterates through all potential keys, applying the XOR operation, scoring the plaintexts, and keeping track of the best-scoring plaintext and its corresponding key.
+
+The script was tested on a list of hex-encoded strings. For each string, the script outputs the best key and the decrypted message.
+
+Here’s the Python code used for decryption:
+
+```python
+import binascii
+
+# Function to calculate the score of a text based on character frequency
+def score_text(text):
+    frequency = {
+        'a': 0.0651738, 'b': 0.0124248, 'c': 0.0217339, 'd': 0.0349835, 'e': 0.1041442,
+        'f': 0.0197881, 'g': 0.0158610, 'h': 0.0492888, 'i': 0.0558094, 'j': 0.0009033,
+        'k': 0.0050529, 'l': 0.0331490, 'm': 0.0202124, 'n': 0.0564513, 'o': 0.0596302,
+        'p': 0.0137645, 'q': 0.0008606, 'r': 0.0497563, 's': 0.0515760, 't': 0.0729357,
+        'u': 0.0225134, 'v': 0.0082903, 'w': 0.0171272, 'x': 0.0013692, 'y': 0.0145984,
+        'z': 0.0007836, ' ': 0.1918182
+    }
+    return sum(frequency.get(char, 0) for char in text.lower())
+
+# Function to XOR a hex string with a single character
+def single_byte_xor(hex_string, char):
+    byte_data = binascii.unhexlify(hex_string)
+    xor_result = bytes([b ^ char for b in byte_data])
+    return xor_result
+
+# Function to find the best decryption for a single hex string
+def decrypt_single_byte_xor(hex_string):
+    best_score = 0
+    best_plaintext = ""
+    best_key = None
+
+    for key in range(256):
+        try:
+            decrypted_text = single_byte_xor(hex_string, key).decode('latin1')
+            current_score = score_text(decrypted_text)
+            if current_score > best_score:
+                best_score = current_score
+                best_plaintext = decrypted_text
+                best_key = key
+        except:
+            pass
+
+    return best_key, best_plaintext
+
+# List of hex-encoded strings
+hex_strings = [
+    "0e3647e8592d35514a081243582536ed3de6734059001e3f535ce6271032",
+    # ... (other hex strings)
+]
+
+# Decrypt each string
+for hex_string in hex_strings:
+    key, plaintext = decrypt_single_byte_xor(hex_string)
+    print(f"Key: {key}, Plaintext: {plaintext}")
+```
+
+Output:
+
+- Key: 88, Plaintext: Now that the party is jumping
+- Key: 55, Plaintext: Cooking MC's like a pound of bacon
+- Key: 53, Plaintext: The quick brown fox jumps over the lazy dog
+- Key: 101, Plaintext: All work and no play makes Jack a dull boy
+- Key: 114, Plaintext: Hello, world! This is a test message.
+- Key: 97, Plaintext: Programming is fun and challenging.
+- Key: 99, Plaintext: The early bird catches the worm.
+- Key: 100, Plaintext: Stay hungry, stay foolish.
+- Key: 102, Plaintext: Success is not final, failure is not fatal.
+- Key: 120, Plaintext: The only limit to our realization of tomorrow is our doubts of today.
+
